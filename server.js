@@ -24,7 +24,7 @@ app.get('/api/search', async (req, res) => {
 });
 
 app.get('/api/camps/*path', async (req, res) => {
-    const subPath = req.params.path;
+    const subPath = Array.isArray(req.params.path) ? req.params.path.join('/') : req.params.path;
     const queryString = Object.keys(req.query).length ? '?' + new URLSearchParams(req.query).toString() : '';
     const targetUrl = `${REC_GOV_BASE}/api/camps/${subPath}${queryString}`;
     try {
