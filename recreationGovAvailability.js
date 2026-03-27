@@ -16,9 +16,9 @@
 
 */
 
-const fetchCampsite = (campsite) => fetch(`https://www.recreation.gov/api/camps/campsites/${campsite}`);
-const fetchAvailability = (campground, year, monthNum) => fetch(`https://www.recreation.gov/api/camps/availability/campground/${campground}/month?start_date=${String(year).padStart(4,'20')}-${String(monthNum).padStart(2,'0')}-01T00%3A00%3A00.000Z`);
-const fetchCampground = (campground) => fetch(`https://www.recreation.gov/api/camps/campgrounds/${campground}`);
+const fetchCampsite = (campsite) => fetch(`/api/camps/campsites/${campsite}`);
+const fetchAvailability = (campground, year, monthNum) => fetch(`/api/camps/availability/campground/${campground}/month?start_date=${String(year).padStart(4,'20')}-${String(monthNum).padStart(2,'0')}-01T00%3A00%3A00.000Z`);
+const fetchCampground = (campground) => fetch(`/api/camps/campgrounds/${campground}`);
 
 const MONTHS_MAP = {
     1: "January",
