@@ -19,6 +19,7 @@
 const fetchCampsite = (campsite) => fetch(`/api/camps/campsites/${campsite}`);
 const fetchAvailability = (campground, year, monthNum) => fetch(`/api/camps/availability/campground/${campground}/month?start_date=${String(year).padStart(4,'20')}-${String(monthNum).padStart(2,'0')}-01T00%3A00%3A00.000Z`);
 const fetchCampground = (campground) => fetch(`/api/camps/campgrounds/${campground}`);
+const fetchCampgroundSearch = (query) => fetch(`/api/search?q=${encodeURIComponent(query)}&entity_type=campground&inventory_type=camping`);
 
 const MONTHS_MAP = {
     1: "January",
@@ -199,6 +200,61 @@ function setUpUI(defaultCampground) {
             text-align: center;
             vertical-align: middle;
         }
+
+        .cg-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #333;
+            color: white;
+            border-radius: 3px;
+            padding: 2px 8px;
+            font-size: 0.88em;
+            margin: 2px;
+        }
+
+        .cg-tag button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 0 0 0 2px;
+            font-size: 1.1em;
+            line-height: 1;
+        }
+
+        .cg-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            border: 1px solid #333;
+            border-radius: 3px;
+            max-height: 220px;
+            overflow-y: auto;
+            z-index: 200;
+            width: 320px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .cg-dropdown-item {
+            padding: 7px 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            font-size: 0.92em;
+        }
+
+        .cg-dropdown-item:hover {
+            background: #f0f0f0;
+        }
+
+        .cg-dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .campground-result-section {
+            margin: 14px 0;
+        }
     `;
     const style = document.createElement("style");
     style.type = "text/css";
@@ -226,95 +282,198 @@ function setUpUI(defaultCampground) {
 
     const availabilityTablesSection = document.createElement('div');
 
-    const availabilityTablesSectionHeaderBox = document.createElement('div');
-    availabilityTablesSectionHeaderBox.setAttribute("style", DEFAULT_H2_BOX_STYLE);
-    const availabilityTablesSectionHeader = document.createElement("h2");
-    const availabilityTablesSectionAddress = document.createElement("h4");
-    const availabilityTablesSectionLink = document.createElement("a");
-    const availabilityTablesSectionEmail = document.createElement("h5");
-    const availabilityTablesSectionPhone = document.createElement("h5");
-    availabilityTablesSectionHeaderBox.appendChild(availabilityTablesSectionHeader);
-    availabilityTablesSectionHeaderBox.appendChild(availabilityTablesSectionLink);
-    availabilityTablesSectionHeaderBox.appendChild(availabilityTablesSectionAddress);
-    availabilityTablesSectionHeaderBox.appendChild(availabilityTablesSectionEmail);
-    availabilityTablesSectionHeaderBox.appendChild(availabilityTablesSectionPhone);
-
-    const availabilityTablesSectionData = document.createElement('div');
-
-    function availabilityCallback(aggregatedAvailability) {
-        const tables = createCampsitesAvailabilityTables(aggregatedAvailability);
-        if (tables.length > 0) {
-            availabilityTablesSectionData.innerText = "";
-            tables.forEach(tbl => {
-                availabilityTablesSection.appendChild(tbl);
-            });
-        } else {
-            availabilityTablesSectionData.innerText = "No availability found for these dates :(";
-        }
-    }
-
     function selectionCallback(selectionData) {
-        const { campground, year, months } = selectionData;
-        availabilityTablesSectionLink.innerText = "";
-        availabilityTablesSectionAddress.innerText = "";
-        availabilityTablesSectionEmail.innerText = "";
-        availabilityTablesSectionPhone.innerText = "";
-
-        fetchCampground(campground)
-            .then(resp => resp.json())
-                .then(({ campground: campgroundData}) => {
-                    if (!campgroundData) {
-                        availabilityTablesSectionHeader.innerText = `CAMPGROUND ${campground} NOT FOUND`;
-                        return;
-                    }
-                    const {
-                        facility_name,
-                        addresses,
-                        facility_email: email,
-                        facility_phone: phone
-                    } = campgroundData;
-                    availabilityTablesSectionHeader.innerText = `Availability: ${facility_name}`;
-                    setTitle(facility_name);
-
-                    availabilityTablesSectionLink.href = campgroundWebsiteLink(campground);
-                    availabilityTablesSectionLink.innerText = 'Recreation.gov Page';
-                    availabilityTablesSectionLink.target = "_blank";
-
-                    if (addresses && addresses.length > 0) {
-                        const { address1, city, state_code, postal_code } = addresses[0];
-                        availabilityTablesSectionAddress.innerText = `${address1}, ${city}, ${state_code} ${postal_code}`;
-                    }
-                    if (email && email.length > 0) {
-                        availabilityTablesSectionEmail.innerText = `Email: ${email}`;
-                    }
-                    if (phone && phone.length > 0) {
-                        availabilityTablesSectionPhone.innerText = `Phone: ${phone}`;
-                    }
-                })
-                .catch(err => console.log(err.message))
-            .catch(err => console.log(err.message));
-
-        setTitle(campground);
-
+        const { campgrounds, year, months } = selectionData;
         availabilityTablesSection.innerText = "";
-        availabilityTablesSection.appendChild(availabilityTablesSectionHeaderBox);
-        availabilityTablesSection.appendChild(availabilityTablesSectionData);
+        setTitle(campgrounds.map(c => c.name || c.id).join(', '));
 
-        availabilityTablesSectionHeader.innerText = `Availability: Campground ${campground}`;
-        availabilityTablesSectionData.innerText = "Loading ...";
-
-        fetchAvailabilityandAggregate(campground, year, months, availabilityCallback);
+        campgrounds.forEach(({ id, name }) => {
+            const section = createCampgroundResultSection(id, name, year, months);
+            availabilityTablesSection.appendChild(section);
+        });
     }
     const userInputSection = createUserInputSection(defaultCampground, selectionCallback);
     document.body.appendChild(userInputSection);
     document.body.appendChild(availabilityTablesSection);
 }
 
-function createUserInputSection(defaultCampground, selectionCallback) {
-    // selectionCallback takes object with: { year, campground, months }
-    const DEFAULT_BOX_MARGIN = "6px 0px";
+function createCampgroundSearchWidget() {
+    let selectedCampgrounds = [];
+    let searchTimeout = null;
 
-    // Default availability year set to current year
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = "position: relative; display: inline-block;";
+
+    const tagsContainer = document.createElement('div');
+    tagsContainer.style.cssText = "min-height: 28px; margin-bottom: 4px;";
+
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = 'Search campgrounds by name...';
+    searchInput.style.cssText = "width: 320px; display: block;";
+
+    const dropdown = document.createElement('div');
+    dropdown.className = 'cg-dropdown';
+    dropdown.style.display = 'none';
+
+    function renderTags() {
+        tagsContainer.innerText = '';
+        selectedCampgrounds.forEach(cg => {
+            const tag = document.createElement('span');
+            tag.className = 'cg-tag';
+            const nameSpan = document.createElement('span');
+            nameSpan.innerText = cg.name;
+            const removeBtn = document.createElement('button');
+            removeBtn.innerText = '×';
+            removeBtn.title = 'Remove';
+            removeBtn.onclick = () => {
+                selectedCampgrounds = selectedCampgrounds.filter(c => c.id !== cg.id);
+                renderTags();
+            };
+            tag.appendChild(nameSpan);
+            tag.appendChild(removeBtn);
+            tagsContainer.appendChild(tag);
+        });
+    }
+
+    function showResults(results) {
+        dropdown.innerText = '';
+        if (results.length === 0) {
+            dropdown.style.display = 'none';
+            return;
+        }
+        results.forEach(cg => {
+            const item = document.createElement('div');
+            item.className = 'cg-dropdown-item';
+            const alreadySelected = selectedCampgrounds.find(c => c.id === cg.id);
+            item.innerText = `${cg.name}${cg.location ? ' — ' + cg.location : ''} (ID: ${cg.id})`;
+            if (alreadySelected) item.style.color = '#999';
+            item.onclick = () => {
+                if (!alreadySelected) {
+                    selectedCampgrounds.push({ id: cg.id, name: cg.name });
+                    renderTags();
+                }
+                searchInput.value = '';
+                dropdown.style.display = 'none';
+            };
+            dropdown.appendChild(item);
+        });
+        dropdown.style.display = 'block';
+    }
+
+    searchInput.oninput = () => {
+        clearTimeout(searchTimeout);
+        const query = searchInput.value.trim();
+        if (query.length < 2) {
+            dropdown.style.display = 'none';
+            return;
+        }
+        searchTimeout = setTimeout(() => {
+            fetchCampgroundSearch(query)
+                .then(r => r.json())
+                .then(data => {
+                    const raw = data.results || data.inventory_suggestions || data.suggest || [];
+                    const results = raw
+                        .filter(r => {
+                            const type = (r.entity_type || r.type || '').toLowerCase();
+                            return type === 'campground' || type === 'camping';
+                        })
+                        .slice(0, 12)
+                        .map(r => ({
+                            id: String(r.entity_id || r.id || ''),
+                            name: r.name || r.entity_name || r.title || String(r.entity_id || r.id),
+                            location: r.city ? `${r.city}, ${r.state_code || ''}` : ''
+                        }))
+                        .filter(r => r.id);
+                    showResults(results);
+                })
+                .catch(err => console.log('Search error:', err));
+        }, 300);
+    };
+
+    searchInput.onkeydown = (e) => {
+        if (e.key === 'Escape') dropdown.style.display = 'none';
+    };
+
+    document.addEventListener('click', (e) => {
+        if (!wrapper.contains(e.target)) dropdown.style.display = 'none';
+    });
+
+    wrapper.appendChild(tagsContainer);
+    wrapper.appendChild(searchInput);
+    wrapper.appendChild(dropdown);
+
+    return {
+        element: wrapper,
+        getSelected: () => selectedCampgrounds
+    };
+}
+
+function createCampgroundResultSection(campgroundID, campgroundLabel, year, months) {
+    const section = document.createElement('div');
+    section.className = 'campground-result-section';
+
+    const headerBox = document.createElement('div');
+    headerBox.setAttribute('style', DEFAULT_H2_BOX_STYLE);
+    const header = document.createElement('h2');
+    const link = document.createElement('a');
+    const address = document.createElement('h4');
+    const email = document.createElement('h5');
+    const phone = document.createElement('h5');
+    headerBox.appendChild(header);
+    headerBox.appendChild(link);
+    headerBox.appendChild(address);
+    headerBox.appendChild(email);
+    headerBox.appendChild(phone);
+
+    const dataDiv = document.createElement('div');
+
+    header.innerText = `Availability: Campground ${campgroundID}`;
+    dataDiv.innerText = 'Loading...';
+
+    section.appendChild(headerBox);
+    section.appendChild(dataDiv);
+
+    fetchCampground(campgroundID)
+        .then(r => r.json())
+        .then(({ campground: cg }) => {
+            if (!cg) {
+                header.innerText = `CAMPGROUND ${campgroundID} NOT FOUND`;
+                dataDiv.innerText = '';
+                return;
+            }
+            header.innerText = `Availability: ${cg.facility_name}`;
+            link.href = campgroundWebsiteLink(campgroundID);
+            link.innerText = 'Recreation.gov Page';
+            link.target = '_blank';
+            if (cg.addresses && cg.addresses.length > 0) {
+                const { address1, city, state_code, postal_code } = cg.addresses[0];
+                address.innerText = `${address1}, ${city}, ${state_code} ${postal_code}`;
+            }
+            if (cg.facility_email && cg.facility_email.length > 0) {
+                email.innerText = `Email: ${cg.facility_email}`;
+            }
+            if (cg.facility_phone && cg.facility_phone.length > 0) {
+                phone.innerText = `Phone: ${cg.facility_phone}`;
+            }
+        })
+        .catch(err => console.log(err.message));
+
+    fetchAvailabilityandAggregate(campgroundID, year, months, (aggregatedAvailability) => {
+        const tables = createCampsitesAvailabilityTables(aggregatedAvailability);
+        dataDiv.innerText = '';
+        if (tables.length > 0) {
+            tables.forEach(tbl => dataDiv.appendChild(tbl));
+        } else {
+            dataDiv.innerText = 'No availability found for these dates :(';
+        }
+    });
+
+    return section;
+}
+
+function createUserInputSection(defaultCampground, selectionCallback) {
+    const DEFAULT_BOX_MARGIN = "6px 0px";
     const defaultAvailabilityYear = (new Date()).getFullYear();
 
     const campgroundInputBox = document.createElement('div');
@@ -322,14 +481,11 @@ function createUserInputSection(defaultCampground, selectionCallback) {
     campgroundInputBox.style.margin = DEFAULT_BOX_MARGIN;
     campgroundInputBox.style.padding = "5px";
     const campgroundLabel = document.createElement('label');
-    campgroundLabel.innerText = "Campground ID";
-    campgroundLabel.style.fontWeight = "bold";
-    const campgroundInput = document.createElement('input');
-    campgroundInput.value = defaultCampground;
-    campgroundInput.required = true;
-    campgroundInput.style.display = "block";
+    campgroundLabel.innerText = "Campgrounds";
+    campgroundLabel.style.cssText = "font-weight: bold; display: block; margin-bottom: 4px;";
+    const searchWidget = createCampgroundSearchWidget();
     campgroundInputBox.appendChild(campgroundLabel);
-    campgroundInputBox.appendChild(campgroundInput);
+    campgroundInputBox.appendChild(searchWidget.element);
 
     const yearInputBox = document.createElement('div');
     yearInputBox.id = "year-input-box";
@@ -356,7 +512,6 @@ function createUserInputSection(defaultCampground, selectionCallback) {
             selectedMonthsSet.delete(value);
         }
         selectedMonths = Array.from(selectedMonthsSet);
-        console.log(`Selected Months: ${JSON.stringify(selectedMonths)}`);
     }
 
     const monthsBox = document.createElement('div');
@@ -376,15 +531,12 @@ function createUserInputSection(defaultCampground, selectionCallback) {
         checkBox.id = cid;
         checkBox.name = cid;
         checkBox.onclick = clickCheckBox;
-
         const label = document.createElement('label');
-        label.for=cid;
+        label.for = cid;
         label.innerText = monthName;
         label.style.margin = "auto 6px";
-
         d.appendChild(checkBox);
         d.appendChild(label);
-
         return d;
     });
     monthsBox.appendChild(monthsLabel);
@@ -392,16 +544,15 @@ function createUserInputSection(defaultCampground, selectionCallback) {
 
     function submit(e) {
         e.preventDefault();
-        const campground = campgroundInput.value;
+        const campgrounds = searchWidget.getSelected();
         const availabilityYear = yearInput.value;
-        if (!(campground && campground.length > 0)) {
-            return alert(`Need to give a campground ID`);
+        if (campgrounds.length === 0) {
+            return alert('Please search for and select at least one campground.');
         }
-        if (!(selectedMonths.length > 0)) {
-            return alert(`Need to select at least one month for availability`);
+        if (selectedMonths.length === 0) {
+            return alert('Need to select at least one month for availability.');
         }
-
-        selectionCallback({ campground, year: availabilityYear, months: selectedMonths });
+        selectionCallback({ campgrounds, year: availabilityYear, months: selectedMonths });
     }
 
     const submitButton = document.createElement('button');
@@ -413,7 +564,6 @@ function createUserInputSection(defaultCampground, selectionCallback) {
     const header = document.createElement('h2');
     header.innerText = "Select Campground Availability";
 
-    document.createElement('div')
     userInputSection.appendChild(header);
     userInputSection.appendChild(campgroundInputBox);
     userInputSection.appendChild(yearInputBox);
