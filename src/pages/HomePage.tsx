@@ -6,10 +6,8 @@ const VIDEO_URL =
 
 const NAV_ITEMS = [
   { label: 'Home', href: '/', active: true },
-  { label: 'Studio', href: '#' },
-  { label: 'About', href: '#' },
-  { label: 'Journal', href: '#' },
-  { label: 'Reach Us', href: '#' },
+  { label: 'How It Works', href: '#how-it-works' },
+  { label: 'About', href: '#about' },
 ]
 
 export default function HomePage() {
@@ -87,7 +85,7 @@ export default function HomePage() {
         <div className="flex items-center justify-between px-8 py-6 max-w-7xl mx-auto">
           {/* Logo */}
           <a href="/" className="font-serif text-3xl tracking-tight text-black select-none">
-            Aethera<sup className="text-base align-super">®</sup>
+            CampFinder
           </a>
 
           {/* Menu items */}
@@ -110,7 +108,7 @@ export default function HomePage() {
             onClick={() => navigate('/availability')}
             className="font-sans text-sm rounded-full px-6 py-2.5 bg-black text-white transition-transform hover:scale-[1.03] active:scale-100"
           >
-            Begin Journey
+            Check Availability
           </button>
         </div>
       </nav>
@@ -125,13 +123,13 @@ export default function HomePage() {
           className="font-serif font-normal text-5xl sm:text-7xl md:text-8xl max-w-7xl animate-fade-rise"
           style={{ lineHeight: 0.95, letterSpacing: '-2.46px', color: '#000000' }}
         >
-          Beyond{' '}
+          Find open{' '}
           <em className="not-italic" style={{ color: '#6F6F6F' }}>
-            silence,
+            campsites,
           </em>{' '}
-          we build{' '}
+          before{' '}
           <em className="not-italic" style={{ color: '#6F6F6F' }}>
-            the eternal.
+            they're gone.
           </em>
         </h1>
 
@@ -140,8 +138,8 @@ export default function HomePage() {
           className="font-sans text-base sm:text-lg max-w-2xl mt-8 leading-relaxed animate-fade-rise-delay"
           style={{ color: '#6F6F6F' }}
         >
-          Building platforms for brilliant minds, fearless makers, and thoughtful souls.
-          Through the noise, we craft digital havens for deep work and pure flows.
+          Search any campground on Recreation.gov and instantly see every available date
+          across multiple sites, months, and parks — all in one place.
         </p>
 
         {/* CTA */}
@@ -149,7 +147,7 @@ export default function HomePage() {
           onClick={() => navigate('/availability')}
           className="font-sans text-base rounded-full px-14 py-5 mt-12 bg-black text-white transition-transform hover:scale-[1.03] active:scale-100 animate-fade-rise-delay-2"
         >
-          Begin Journey
+          Check Availability
         </button>
       </section>
     </div>

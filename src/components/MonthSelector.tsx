@@ -18,43 +18,40 @@ export default function MonthSelector({ selected, onChange }: Props) {
 
   return (
     <div>
-      <div className="flex gap-3 mb-2">
+      <div className="flex gap-4 mb-3">
         <button
           type="button"
           onClick={() => onChange(all)}
-          className="text-xs text-black underline underline-offset-2 hover:text-gray-600"
+          className="text-xs text-black underline underline-offset-2 hover:text-gray-500 transition-colors"
         >
-          Select All
+          Select all
         </button>
         <button
           type="button"
           onClick={() => onChange([])}
-          className="text-xs text-gray-500 underline underline-offset-2 hover:text-gray-800"
+          className="text-xs text-gray-400 underline underline-offset-2 hover:text-gray-700 transition-colors"
         >
-          Clear All
+          Clear
         </button>
       </div>
-      <div className="grid grid-cols-3 sm:grid-cols-4 gap-x-4 gap-y-1.5">
+      <div className="flex flex-wrap gap-2">
         {all.map((month) => {
-          const id = `month-${month}`
           const checked = selected.includes(month)
           return (
-            <label
+            <button
               key={month}
-              htmlFor={id}
-              className="flex items-center gap-2 cursor-pointer text-sm select-none"
+              type="button"
+              onClick={() => toggle(month)}
+              className={`
+                text-sm px-4 py-1.5 rounded-full border transition-colors select-none
+                ${checked
+                  ? 'bg-black text-white border-black'
+                  : 'bg-white text-gray-600 border-gray-300 hover:border-gray-500 hover:text-black'
+                }
+              `}
             >
-              <input
-                type="checkbox"
-                id={id}
-                checked={checked}
-                onChange={() => toggle(month)}
-                className="rounded border-gray-400 accent-black cursor-pointer"
-              />
-              <span className={checked ? 'text-black font-medium' : 'text-gray-600'}>
-                {MONTHS_MAP[month]}
-              </span>
-            </label>
+              {MONTHS_MAP[month]}
+            </button>
           )
         })}
       </div>

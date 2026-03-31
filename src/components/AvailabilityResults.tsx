@@ -22,7 +22,6 @@ function getAvailableSites(
         .map(([dt]) => new Date(dt))
         .sort((a, b) => a.getTime() - b.getTime())
 
-      // Calculate max consecutive nights
       let maxConsecutive = 0
       if (dates.length > 0) {
         let run = 1
@@ -42,6 +41,13 @@ function getAvailableSites(
     })
     .filter((s) => s.dates.length > 0 && s.maxConsecutive >= minConsecutive)
     .sort((a, b) => a.site.localeCompare(b.site, undefined, { numeric: true }))
+}
+
+const DAY_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+function formatDate(d: Date) {
+  return `${DAY_ABBR[d.getDay()]} ${MONTH_ABBR[d.getMonth()]} ${d.getDate()}`
 }
 
 export default function AvailabilityResults({
@@ -82,71 +88,74 @@ export default function AvailabilityResults({
   return (
     <div className="mb-10">
       {/* Header */}
-      <div className="bg-gray-900 text-white rounded-lg px-5 py-4 mb-4">
-        <h2 className="text-xl font-semibold">{title}</h2>
-        {info && (
-          <>
+      <div className="bg-gray-900 text-white rounded-xl px-5 py-4 mb-5">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h2 className="text-lg font-semibold leading-tight">{title}</h2>
+            {info?.addresses?.[0] && (
+              <p className="text-gray-400 text-sm mt-0.5">
+                {info.addresses[0].city}, {info.addresses[0].state_code}
+              </p>
+            )}
+          </div>
+          {info && (
             <a
               href={`https://www.recreation.gov/camping/campgrounds/${campgroundId}`}
               target="_blank"
               rel="noreferrer"
-              className="text-blue-400 hover:underline text-sm"
+              className="text-gray-300 hover:text-white text-sm underline underline-offset-2 whitespace-nowrap transition-colors"
             >
-              Recreation.gov Page ↗
+              View on Recreation.gov ↗
             </a>
-            {info.addresses && info.addresses[0] && (
-              <p className="text-gray-300 text-sm mt-1">
-                {info.addresses[0].address1}, {info.addresses[0].city},{' '}
-                {info.addresses[0].state_code} {info.addresses[0].postal_code}
-              </p>
-            )}
-            {info.facility_email && (
-              <p className="text-gray-300 text-sm">Email: {info.facility_email}</p>
-            )}
-            {info.facility_phone && (
-              <p className="text-gray-300 text-sm">Phone: {info.facility_phone}</p>
-            )}
-          </>
+          )}
+        </div>
+        {info && (info.facility_phone || info.facility_email) && (
+          <div className="flex flex-wrap gap-x-6 gap-y-0.5 mt-2 text-gray-400 text-sm">
+            {info.facility_phone && <span>{info.facility_phone}</span>}
+            {info.facility_email && <span>{info.facility_email}</span>}
+          </div>
         )}
       </div>
 
       {/* Body */}
       {loading ? (
-        <p className="text-gray-500 text-sm animate-pulse">Loading availability…</p>
+        <div className="flex items-center gap-2 text-gray-400 text-sm py-2">
+          <span className="inline-block w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+          Loading availability…
+        </div>
       ) : error ? (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-md px-4 py-3 text-sm">
-          Error: {error}
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
+          {error}
         </div>
       ) : sites.length === 0 ? (
-        <p className="text-gray-500 text-sm">
-          No availability found for these dates
-          {minConsecutive > 1 ? ` with ${minConsecutive}+ consecutive nights` : ''}.
+        <p className="text-gray-400 text-sm py-2">
+          No availability found{minConsecutive > 1 ? ` with ${minConsecutive}+ consecutive nights` : ''}.
         </p>
       ) : (
         <>
-          <p className="text-sm text-gray-600 mb-3">
-            <span className="font-semibold text-black">{sites.length}</span> campsite
-            {sites.length !== 1 ? 's' : ''} available
-            {minConsecutive > 1 ? ` with ${minConsecutive}+ consecutive nights` : ''}
+          <p className="text-sm text-gray-500 mb-4">
+            <span className="font-semibold text-black">{sites.length}</span>{' '}
+            {sites.length === 1 ? 'site' : 'sites'} available
+            {minConsecutive > 1 && ` · ${minConsecutive}+ consecutive nights`}
           </p>
           <div className="flex flex-wrap gap-3">
             {sites.map(({ site, dates, maxConsecutive }) => (
               <div
                 key={site}
-                className="border-2 border-black rounded-md overflow-hidden min-w-[120px]"
+                className="border border-gray-200 rounded-xl overflow-hidden min-w-[130px] shadow-sm"
               >
-                <div className="bg-black text-white text-center text-sm font-bold px-3 py-1.5">
-                  {site}
+                <div className="bg-black text-white px-3 py-2">
+                  <div className="text-sm font-semibold text-center">{site}</div>
                   {maxConsecutive > 1 && (
-                    <span className="ml-1.5 text-xs text-gray-400 font-normal">
-                      ({maxConsecutive}n max)
-                    </span>
+                    <div className="text-xs text-gray-400 text-center mt-0.5">
+                      {maxConsecutive} nights max
+                    </div>
                   )}
                 </div>
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-gray-100 bg-white">
                   {dates.map((d) => (
-                    <div key={d.toISOString()} className="text-center text-xs px-2 py-1 text-gray-700">
-                      {d.toLocaleDateString()}
+                    <div key={d.toISOString()} className="px-3 py-1.5 text-xs text-gray-700 text-center">
+                      {formatDate(d)}
                     </div>
                   ))}
                 </div>

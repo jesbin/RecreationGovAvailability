@@ -52,47 +52,45 @@ export default function AvailabilityPage() {
       <div className="bg-gray-900 text-white px-6 py-4 flex items-center justify-between">
         <button
           onClick={() => navigate('/')}
-          className="font-serif text-2xl tracking-tight text-white"
+          className="font-serif text-2xl tracking-tight text-white hover:text-gray-300 transition-colors"
         >
-          Aethera<sup className="text-sm align-super">®</sup>
+          CampFinder
         </button>
-        <h1 className="text-base font-medium text-gray-300 hidden sm:block">
-          Recreation.gov Campsite Availability
-        </h1>
+        <span className="text-sm font-medium text-gray-400 hidden sm:block">
+          Campsite Availability
+        </span>
         <div />
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 py-8">
-        <h1 className="text-2xl font-bold text-black mb-1 sm:hidden">
-          Campsite Availability
-        </h1>
+      <div className="max-w-4xl mx-auto px-6 py-10">
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="bg-gray-50 border border-gray-200 rounded-xl p-6 mb-8 space-y-6">
-          <div>
-            <p className="text-xs text-gray-500 mb-4">
-              Fetches all available dates from the{' '}
-              <a
-                href="https://www.recreation.gov/search?inventory_type=camping"
-                target="_blank"
-                rel="noreferrer"
-                className="underline text-black"
-              >
-                Recreation.gov
-              </a>{' '}
-              API for any combination of campgrounds and months.
-            </p>
-          </div>
+        <form onSubmit={handleSubmit} className="bg-gray-50 border border-gray-200 rounded-2xl p-7 mb-10 space-y-7">
+
+          <p className="text-sm text-gray-500 leading-relaxed">
+            Search any campground on{' '}
+            <a
+              href="https://www.recreation.gov/search?inventory_type=camping"
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-2 text-black hover:text-gray-600 transition-colors"
+            >
+              Recreation.gov
+            </a>{' '}
+            and see all available dates across any combination of parks and months.
+          </p>
+
+          <div className="h-px bg-gray-200" />
 
           {/* Campground search */}
           <div>
-            <label className="block text-sm font-semibold text-black mb-2">Campgrounds</label>
+            <label className="block text-sm font-semibold text-black mb-2.5">Campgrounds</label>
             <CampgroundSearch selected={campgrounds} onChange={setCampgrounds} />
           </div>
 
           {/* Year */}
           <div>
-            <label htmlFor="year-input" className="block text-sm font-semibold text-black mb-2">
+            <label htmlFor="year-input" className="block text-sm font-semibold text-black mb-2.5">
               Year
             </label>
             <input
@@ -103,19 +101,19 @@ export default function AvailabilityPage() {
               min={currentYear}
               max={currentYear + 5}
               required
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm w-32 focus:outline-none focus:border-black"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-28 focus:outline-none focus:border-black transition-colors"
             />
           </div>
 
           {/* Months */}
           <div>
-            <label className="block text-sm font-semibold text-black mb-2">Months</label>
+            <label className="block text-sm font-semibold text-black mb-2.5">Months</label>
             <MonthSelector selected={months} onChange={setMonths} />
           </div>
 
           {/* Consecutive nights filter */}
           <div>
-            <label htmlFor="consecutive-input" className="block text-sm font-semibold text-black mb-2">
+            <label htmlFor="consecutive-input" className="block text-sm font-semibold text-black mb-2.5">
               Minimum consecutive nights
             </label>
             <div className="flex items-center gap-3">
@@ -126,23 +124,23 @@ export default function AvailabilityPage() {
                 onChange={(e) => setMinConsecutive(Math.max(1, parseInt(e.target.value, 10) || 1))}
                 min={1}
                 max={30}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm w-20 focus:outline-none focus:border-black"
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-20 focus:outline-none focus:border-black transition-colors"
               />
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-gray-400">
                 {minConsecutive === 1
                   ? 'Show all available dates'
-                  : `Only sites with ${minConsecutive}+ consecutive nights available`}
+                  : `Only sites with ${minConsecutive}+ consecutive nights`}
               </span>
             </div>
           </div>
 
           {validationError && (
-            <div className="bg-red-50 border border-red-200 text-red-700 rounded-md px-4 py-3 text-sm">
+            <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
               {validationError}
             </div>
           )}
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-5 pt-1">
             <button
               type="submit"
               className="bg-black text-white rounded-full px-8 py-2.5 text-sm font-medium hover:bg-gray-800 transition-colors"
@@ -152,10 +150,8 @@ export default function AvailabilityPage() {
             {submitted && (
               <button
                 type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText(window.location.href)
-                }}
-                className="text-sm text-gray-500 underline underline-offset-2 hover:text-black"
+                onClick={() => navigator.clipboard.writeText(window.location.href)}
+                className="text-sm text-gray-400 hover:text-black underline underline-offset-2 transition-colors"
               >
                 Copy shareable link
               </button>
@@ -166,7 +162,7 @@ export default function AvailabilityPage() {
         {/* Results */}
         {submitted && (
           <div>
-            <h2 className="text-xl font-bold text-black mb-4">Results</h2>
+            <h2 className="text-lg font-semibold text-black mb-6">Results</h2>
             {submitted.campgrounds.map((cg) => (
               <AvailabilityResults
                 key={cg.id}
