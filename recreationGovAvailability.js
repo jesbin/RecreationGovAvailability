@@ -20,6 +20,7 @@ const fetchCampsite = (campsite) => fetch(`/api/camps/campsites/${campsite}`);
 const fetchAvailability = (campground, year, monthNum) => fetch(`/api/camps/availability/campground/${campground}/month?start_date=${String(year).padStart(4,'20')}-${String(monthNum).padStart(2,'0')}-01T00%3A00%3A00.000Z`);
 const fetchCampground = (campground) => fetch(`/api/camps/campgrounds/${campground}`);
 const fetchCampgroundSearch = (query) => fetch(`/api/search?q=${encodeURIComponent(query)}&entity_type=campground&inventory_type=camping`);
+const fetchCampgroundsNearLocation = (lat, lng, radiusMiles = 75) => fetch(`/api/search?latitude=${lat}&longitude=${lng}&radius=${radiusMiles}&entity_type=campground&inventory_type=camping&size=20`);
 
 const MONTHS_MAP = {
     1: "January",
@@ -41,6 +42,121 @@ const DEFAULT_TITLE_BOX_STYLE = `${DEFAULT_HEADER_BOX_STYLE_MIXIN} padding: 6px;
 const DEFAULT_H2_BOX_STYLE = `${DEFAULT_HEADER_BOX_STYLE_MIXIN} padding: 3px; margin: 10px 0px;`;
 
 let DEFAULT_CAMPGROUND = 232487;
+
+function loadLeaflet(callback) {
+    if (window.L) { callback(); return; }
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(link);
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet-src.js';
+    script.onload = callback;
+    script.onerror = () => callback(new Error('Leaflet failed to load'));
+    document.head.appendChild(script);
+}
+
+function haversineDistanceMiles(lat1, lng1, lat2, lng2) {
+    const R = 3958.8;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function createMapSection(userLat, userLng, campgrounds, searchWidget) {
+    const container = document.createElement('div');
+    container.id = 'nearby-map';
+    container.style.cssText = 'height: 420px; width: 100%; border: 2px solid #333; border-radius: 6px; margin: 10px 0;';
+
+    loadLeaflet((err) => {
+        if (err) {
+            container.style.cssText += 'display:flex;align-items:center;justify-content:center;background:#f5f5f5;';
+            container.innerText = 'Map unavailable (script blocked by browser policy). Use the list below.';
+            return;
+        }
+        const map = L.map(container).setView([userLat, userLng], 9);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+            maxZoom: 18
+        }).addTo(map);
+
+        // User location marker
+        const userIcon = L.divIcon({
+            html: '<div style="width:14px;height:14px;border-radius:50%;background:#2979ff;border:3px solid white;box-shadow:0 0 6px rgba(0,0,0,0.5);"></div>',
+            iconSize: [20, 20], iconAnchor: [10, 10], className: ''
+        });
+        L.marker([userLat, userLng], { icon: userIcon })
+            .addTo(map)
+            .bindPopup('<b>You are here</b>');
+
+        // Campground markers
+        const cgIcon = L.divIcon({
+            html: '<div style="width:12px;height:12px;border-radius:50%;background:#2e7d32;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>',
+            iconSize: [16, 16], iconAnchor: [8, 8], className: ''
+        });
+        campgrounds.forEach(cg => {
+            if (!cg.lat || !cg.lng) return;
+            const marker = L.marker([cg.lat, cg.lng], { icon: cgIcon }).addTo(map);
+            const popupId = `map-add-btn-${cg.id}`;
+            marker.bindPopup(`
+                <div style="font-family:Helvetica,Arial,sans-serif;min-width:160px;">
+                    <b>${cg.name}</b><br>
+                    ${cg.location ? `<span style="color:#555;font-size:0.9em;">${cg.location}</span><br>` : ''}
+                    ${cg.distanceMiles != null ? `<span style="color:#777;font-size:0.85em;">${cg.distanceMiles.toFixed(1)} mi away</span><br>` : ''}
+                    <button id="${popupId}" style="margin-top:6px;background:#2e7d32;color:white;border:none;border-radius:3px;padding:4px 10px;cursor:pointer;font-size:0.9em;">
+                        + Add to Search
+                    </button>
+                </div>
+            `);
+            marker.on('popupopen', () => {
+                const btn = document.getElementById(popupId);
+                if (btn) btn.onclick = () => { searchWidget.addCampground(cg); marker.closePopup(); };
+            });
+        });
+    });
+
+    return container;
+}
+
+function createNearbyCampgroundsList(campgrounds, searchWidget) {
+    const section = document.createElement('div');
+    section.style.cssText = 'margin: 10px 0;';
+
+    const header = document.createElement('h3');
+    header.innerText = `Nearby Campgrounds (${campgrounds.length} found)`;
+    header.style.margin = '0 0 8px 0';
+    section.appendChild(header);
+
+    const list = document.createElement('div');
+    list.style.cssText = 'max-height: 280px; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px;';
+
+    campgrounds.forEach(cg => {
+        const item = document.createElement('div');
+        item.className = 'nearby-cg-item';
+        const info = document.createElement('span');
+        info.style.cssText = 'flex:1; font-size:0.92em;';
+        info.innerHTML = `<b>${cg.name}</b>${cg.location ? ` &mdash; ${cg.location}` : ''}${cg.distanceMiles != null ? `<span style="color:#777;"> (${cg.distanceMiles.toFixed(1)} mi)</span>` : ''}`;
+
+        const addBtn = document.createElement('button');
+        addBtn.innerText = '+ Add';
+        addBtn.style.cssText = 'font-size:0.85em; padding:3px 8px;';
+        addBtn.onclick = () => {
+            searchWidget.addCampground(cg);
+            addBtn.innerText = '✓ Added';
+            addBtn.disabled = true;
+            addBtn.style.background = '#555';
+        };
+
+        item.appendChild(info);
+        item.appendChild(addBtn);
+        list.appendChild(item);
+    });
+
+    section.appendChild(list);
+    return section;
+}
 
 function setTitle(campgroundID) {
     if (campgroundID) {
@@ -255,6 +371,23 @@ function setUpUI(defaultCampground) {
         .campground-result-section {
             margin: 14px 0;
         }
+
+        .nearby-cg-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 7px 10px;
+            border-bottom: 1px solid #eee;
+            gap: 10px;
+        }
+
+        .nearby-cg-item:last-child {
+            border-bottom: none;
+        }
+
+        .nearby-cg-item:hover {
+            background: #f9f9f9;
+        }
     `;
     const style = document.createElement("style");
     style.type = "text/css";
@@ -405,7 +538,13 @@ function createCampgroundSearchWidget() {
 
     return {
         element: wrapper,
-        getSelected: () => selectedCampgrounds
+        getSelected: () => selectedCampgrounds,
+        addCampground: (cg) => {
+            if (!selectedCampgrounds.find(c => c.id === cg.id)) {
+                selectedCampgrounds.push({ id: cg.id, name: cg.name });
+                renderTags();
+            }
+        }
     };
 }
 
@@ -487,6 +626,87 @@ function createUserInputSection(defaultCampground, selectionCallback) {
     campgroundInputBox.appendChild(campgroundLabel);
     campgroundInputBox.appendChild(searchWidget.element);
 
+    // Find Near Me section
+    const nearMeSection = document.createElement('div');
+    nearMeSection.style.cssText = "margin: 10px 0; padding: 5px;";
+
+    const nearMeBtn = document.createElement('button');
+    nearMeBtn.type = 'button';
+    nearMeBtn.innerText = '📍 Find Near Me';
+    nearMeBtn.title = 'Find campgrounds near your current location';
+
+    const nearMeStatus = document.createElement('span');
+    nearMeStatus.style.cssText = 'margin-left: 10px; font-size: 0.9em; color: #555;';
+
+    const nearMeResults = document.createElement('div');
+
+    nearMeBtn.onclick = () => {
+        if (!navigator.geolocation) {
+            nearMeStatus.innerText = 'Geolocation is not supported by your browser.';
+            return;
+        }
+        nearMeBtn.disabled = true;
+        nearMeStatus.innerText = 'Locating you...';
+        nearMeResults.innerText = '';
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                nearMeStatus.innerText = 'Fetching nearby campgrounds...';
+                fetchCampgroundsNearLocation(latitude, longitude)
+                    .then(r => r.json())
+                    .then(data => {
+                        nearMeBtn.disabled = false;
+                        const raw = data.results || data.inventory_suggestions || data.suggest || [];
+                        const campgrounds = raw
+                            .filter(r => {
+                                const type = (r.entity_type || r.type || '').toLowerCase();
+                                return type === 'campground' || type === 'camping';
+                            })
+                            .map(r => {
+                                const lat = r.latitude != null ? parseFloat(r.latitude) : null;
+                                const lng = r.longitude != null ? parseFloat(r.longitude) : null;
+                                const distanceMiles = (lat != null && lng != null)
+                                    ? haversineDistanceMiles(latitude, longitude, lat, lng)
+                                    : null;
+                                return {
+                                    id: String(r.entity_id || r.id || ''),
+                                    name: r.name || r.entity_name || r.title || String(r.entity_id || r.id),
+                                    location: r.city ? `${r.city}, ${r.state_code || ''}` : '',
+                                    lat, lng, distanceMiles
+                                };
+                            })
+                            .filter(r => r.id)
+                            .sort((a, b) => (a.distanceMiles ?? 9999) - (b.distanceMiles ?? 9999));
+
+                        nearMeResults.innerText = '';
+                        if (campgrounds.length === 0) {
+                            nearMeStatus.innerText = 'No campgrounds found nearby.';
+                            return;
+                        }
+                        nearMeStatus.innerText = '';
+                        nearMeResults.appendChild(createMapSection(latitude, longitude, campgrounds, searchWidget));
+                        nearMeResults.appendChild(createNearbyCampgroundsList(campgrounds, searchWidget));
+                    })
+                    .catch(err => {
+                        nearMeBtn.disabled = false;
+                        nearMeStatus.innerText = 'Error fetching nearby campgrounds.';
+                        console.log('Near me error:', err);
+                    });
+            },
+            (err) => {
+                nearMeBtn.disabled = false;
+                nearMeStatus.innerText = err.code === 1
+                    ? 'Location access denied. Please allow location access and try again.'
+                    : 'Could not determine your location.';
+            }
+        );
+    };
+
+    nearMeSection.appendChild(nearMeBtn);
+    nearMeSection.appendChild(nearMeStatus);
+    nearMeSection.appendChild(nearMeResults);
+
     const yearInputBox = document.createElement('div');
     yearInputBox.id = "year-input-box";
     yearInputBox.style.margin = DEFAULT_BOX_MARGIN;
@@ -566,6 +786,7 @@ function createUserInputSection(defaultCampground, selectionCallback) {
 
     userInputSection.appendChild(header);
     userInputSection.appendChild(campgroundInputBox);
+    userInputSection.appendChild(nearMeSection);
     userInputSection.appendChild(yearInputBox);
     userInputSection.appendChild(monthsBox);
     userInputSection.appendChild(submitButton);
