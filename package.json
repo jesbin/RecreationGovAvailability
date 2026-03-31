@@ -4,6 +4,7 @@
   "description": "Campsite availability tool for Recreation.gov",
   "type": "module",
   "scripts": {
+    "dev": "concurrently \"node server.js\" \"vite\"",
     "dev:server": "node server.js",
     "dev:client": "vite",
     "build": "vite build",
@@ -14,6 +15,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "concurrently": "^9.2.1",
     "express": "^5.2.1",
     "node-fetch": "^3.3.2"
   },

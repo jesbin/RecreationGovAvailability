@@ -1,19 +1,39 @@
 # Recreation.gov Availability Tool
 
 ## Overview
-A web app that fetches and displays campsite availability from Recreation.gov for a given campground ID, year, and selected months.
+A web app that fetches and displays campsite availability from Recreation.gov. Users can search for campgrounds by name, select multiple, pick a year and months, and see all available dates per campsite.
 
 ## Architecture
-- **server.js** — Express 5 server that:
-  - Serves static files (HTML + JS) from the project root
-  - Proxies all `/api/camps/*` requests to `recreation.gov` to bypass CORS restrictions
-- **recreationGovAvailability.js** — Vanilla JS that builds the entire UI using DOM APIs and fetches data via the proxy
-- **index.html** — Minimal HTML shell that loads the JS
-- **availabilityExtrasLib.js** — Extra utility functions (campsite data fetching)
+
+### Dev Setup (how it runs)
+Two processes run concurrently via `npm run dev`:
+- **Vite dev server** — port 5000 (the preview port). Serves the React/TypeScript frontend and hot-reloads on changes.
+- **Express API server** (`server.js`) — port 3001. Proxies all recreation.gov API calls to avoid CORS restrictions.
+
+Vite is configured to forward all `/api/*` requests to the Express server at `localhost:3001`.
+
+### Frontend (`src/`)
+- React + TypeScript + Vite + TailwindCSS
+- `src/main.tsx` — entry point
+- `src/App.tsx` — router (Home and Availability pages)
+- `src/api.ts` — all recreation.gov API calls (campground search, details, availability)
+- `src/types.ts` — shared TypeScript types
+- `src/pages/` — HomePage, AvailabilityPage
+- `src/components/` — reusable UI components
+- `src/hooks/` — custom React hooks
+- `src/styles/` — global CSS / theme
+
+### Backend (`server.js`)
+- Express 5 with ES modules (`"type": "module"` in package.json)
+- Proxies `/api/search` → recreation.gov search API
+- Proxies `/api/camps/*` → recreation.gov camps API
+- In production: also serves the built `dist/` folder as a SPA
+
+## Key Files
+- `vite.config.ts` — Vite config (port 5000, proxy to :3001)
+- `server.js` — Express API proxy (port 3001)
+- `package.json` — `npm run dev` runs both with concurrently
+- `recreationGovAvailability.js` — original vanilla JS version (kept for reference)
 
 ## Running
-The "Run App" workflow runs `node server.js` on port 5000.
-
-## Key Notes
-- The original script was a browser-console paste tool. It was converted to a proper web app by adding an Express server with a recreation.gov API proxy.
-- Fetch URLs in `recreationGovAvailability.js` use relative `/api/camps/` paths which the server proxies to `recreation.gov`.
+The "Run App" workflow runs `npm run dev` which starts both processes.

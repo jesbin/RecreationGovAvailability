@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
-const PORT = process.env.PORT || 5000
+const PORT = process.env.PORT || 3001
 
 const REC_GOV_BASE = 'https://www.recreation.gov'
 
@@ -45,7 +45,7 @@ app.get('/api/camps/*path', async (req, res) => {
 })
 
 // SPA fallback — all non-API routes serve index.html
-app.get('*', (req, res) => {
+app.get('/{*path}', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'))
 })
 
