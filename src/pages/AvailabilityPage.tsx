@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import CampgroundSearch from '../components/CampgroundSearch'
 import MonthSelector from '../components/MonthSelector'
 import AvailabilityResults from '../components/AvailabilityResults'
+import NearbyFinder from '../components/NearbyFinder'
 import { useUrlState } from '../hooks/useUrlState'
 import type { Campground } from '../types'
 
@@ -86,6 +87,16 @@ export default function AvailabilityPage() {
           <div>
             <label className="block text-sm font-semibold text-black mb-2.5">Campgrounds</label>
             <CampgroundSearch selected={campgrounds} onChange={setCampgrounds} />
+            <div className="mt-3">
+              <NearbyFinder
+                selected={campgrounds}
+                onAdd={(cg) => {
+                  if (!campgrounds.find((c) => c.id === cg.id)) {
+                    setCampgrounds([...campgrounds, cg])
+                  }
+                }}
+              />
+            </div>
           </div>
 
           {/* Year */}

@@ -4,6 +4,12 @@ export interface Campground {
   location?: string
 }
 
+export interface NearbyCampground extends Campground {
+  lat: number | null
+  lng: number | null
+  distanceMiles: number | null
+}
+
 export interface CampgroundInfo {
   facility_name: string
   facility_email?: string
