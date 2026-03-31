@@ -42,30 +42,30 @@ export default function NearbyFinder({ selected, onAdd }: Props) {
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
 
-  // Build/update map whenever results arrive
+  // Init map once status reaches 'done'
   useEffect(() => {
     if (status !== 'done' || !mapContainerRef.current || !userCoords) return
+    if (mapRef.current) return
 
-    // Init map once
-    if (!mapRef.current) {
-      mapRef.current = L.map(mapContainerRef.current).setView([userCoords.lat, userCoords.lng], 9)
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        maxZoom: 18,
-      }).addTo(mapRef.current)
-    }
+    mapRef.current = L.map(mapContainerRef.current).setView([userCoords.lat, userCoords.lng], 9)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 18,
+    }).addTo(mapRef.current)
 
-    const map = mapRef.current
-
-    // User pin
     L.marker([userCoords.lat, userCoords.lng], { icon: userIcon })
-      .addTo(map)
+      .addTo(mapRef.current)
       .bindPopup('<b>You are here</b>')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status])
 
-    // Campground pins
+  // Add campground pins whenever results arrive (separate from map init)
+  useEffect(() => {
+    if (!mapRef.current || campgrounds.length === 0) return
+
     campgrounds.forEach((cg) => {
       if (cg.lat == null || cg.lng == null) return
-      const marker = L.marker([cg.lat, cg.lng], { icon: cgIcon }).addTo(map)
+      const marker = L.marker([cg.lat, cg.lng], { icon: cgIcon }).addTo(mapRef.current!)
       const already = selected.some((s) => s.id === cg.id)
       marker.bindPopup(`
         <div style="font-family:inherit;min-width:150px;">
@@ -86,7 +86,7 @@ export default function NearbyFinder({ selected, onAdd }: Props) {
       })
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status])
+  }, [campgrounds])
 
   function handleAdd(cg: NearbyCampground) {
     onAdd({ id: cg.id, name: cg.name, location: cg.location })
@@ -148,54 +148,57 @@ export default function NearbyFinder({ selected, onAdd }: Props) {
         {status === 'error' && (
           <span className="text-sm text-red-600">{errorMsg}</span>
         )}
-        {status === 'done' && campgrounds.length === 0 && (
-          <span className="text-sm text-gray-500">No campgrounds found within 75 miles.</span>
-        )}
       </div>
 
-      {status === 'done' && campgrounds.length > 0 && (
+      {status === 'done' && (
         <div className="mt-4 space-y-4">
-          {/* Map */}
+          {/* Map — always shown once location is found */}
           <div
             ref={mapContainerRef}
             className="w-full rounded-xl border border-gray-200 overflow-hidden"
             style={{ height: 380 }}
           />
 
-          {/* List */}
-          <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-              {campgrounds.length} nearby campgrounds
-            </p>
-            <div className="divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden">
-              {campgrounds.map((cg) => {
-                const added = isAdded(cg)
-                return (
-                  <div key={cg.id} className="flex items-center justify-between px-4 py-2.5 bg-white hover:bg-gray-50 transition-colors">
-                    <div className="min-w-0 flex-1 pr-4">
-                      <span className="text-sm font-medium text-gray-900">{cg.name}</span>
-                      {cg.location && (
-                        <span className="text-sm text-gray-400"> — {cg.location}</span>
-                      )}
-                      {cg.distanceMiles != null && (
-                        <span className="text-xs text-gray-400 ml-1.5">
-                          ({cg.distanceMiles.toFixed(1)} mi)
-                        </span>
-                      )}
+          {/* List or no-results message */}
+          {campgrounds.length > 0 ? (
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                {campgrounds.length} nearby campgrounds
+              </p>
+              <div className="divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden">
+                {campgrounds.map((cg) => {
+                  const added = isAdded(cg)
+                  return (
+                    <div key={cg.id} className="flex items-center justify-between px-4 py-2.5 bg-white hover:bg-gray-50 transition-colors">
+                      <div className="min-w-0 flex-1 pr-4">
+                        <span className="text-sm font-medium text-gray-900">{cg.name}</span>
+                        {cg.location && (
+                          <span className="text-sm text-gray-400"> — {cg.location}</span>
+                        )}
+                        {cg.distanceMiles != null && (
+                          <span className="text-xs text-gray-400 ml-1.5">
+                            ({cg.distanceMiles.toFixed(1)} mi)
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleAdd(cg)}
+                        disabled={added}
+                        className="shrink-0 text-xs font-medium border rounded-full px-3 py-1 transition-colors disabled:cursor-default disabled:border-gray-200 disabled:text-gray-400 border-black text-black hover:bg-black hover:text-white disabled:hover:bg-white disabled:hover:text-gray-400"
+                      >
+                        {added ? '✓ Added' : '+ Add'}
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleAdd(cg)}
-                      disabled={added}
-                      className="shrink-0 text-xs font-medium border rounded-full px-3 py-1 transition-colors disabled:cursor-default disabled:border-gray-200 disabled:text-gray-400 border-black text-black hover:bg-black hover:text-white disabled:hover:bg-white disabled:hover:text-gray-400"
-                    >
-                      {added ? '✓ Added' : '+ Add'}
-                    </button>
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
             </div>
-          </div>
+          ) : (
+            <p className="text-sm text-gray-500">
+              No campgrounds found within 75 miles. Try searching by name above.
+            </p>
+          )}
         </div>
       )}
     </div>
