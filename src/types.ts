@@ -31,3 +31,52 @@ export interface SiteAvailableRun {
   dates: Date[]
   maxConsecutive: number
 }
+
+// RIDB-sourced rich facility data
+export interface FacilityDetail {
+  FacilityID: string
+  FacilityName: string
+  FacilityDescription?: string
+  FacilityDirections?: string
+  FacilityPhone?: string
+  FacilityEmail?: string
+  FacilityAdaAccess?: string
+  StayLimit?: string
+  FACILITYADDRESS?: { AddressStateCode: string; City: string; PostalCode: string }[]
+}
+
+export interface FacilityMedia {
+  EntityMediaID: string
+  URL: string
+  Title: string
+  IsPrimary: boolean
+  MimeType: string
+}
+
+export interface FacilityActivity {
+  ActivityID: number
+  ActivityName: string
+}
+
+export interface FacilityCampsite {
+  CampsiteID: string
+  CampsiteName: string
+  CampsiteType: string
+  Loop: string
+  CampsiteAccessible: boolean
+  TypeOfUse: string
+  ATTRIBUTES: { AttributeName: string; AttributeValue: string }[]
+  PERMITTEDEQUIPMENT: { EquipmentName: string; MaxLength: number }[]
+}
+
+export interface AlertSubscription {
+  id: string
+  email: string
+  campgroundId: string
+  campgroundName: string
+  year: number
+  months: number[]
+  minConsecutive: number
+  active: boolean
+  createdAt: string
+}
