@@ -12,6 +12,29 @@ const REC_GOV_BASE = 'https://www.recreation.gov'
 // Serve built React app
 app.use(express.static(path.join(__dirname, 'dist')))
 
+// Also serve public/ folder (campgrounds.json static asset) during dev
+app.use(express.static(path.join(__dirname, 'public')))
+
+app.get('/api/ridb/*path', async (req, res) => {
+    const subPath = Array.isArray(req.params.path) ? req.params.path.join('/') : req.params.path
+    const queryString = Object.keys(req.query).length ? '?' + new URLSearchParams(req.query).toString() : ''
+    const targetUrl = `https://ridb.recreation.gov/api/v1/${subPath}${queryString}`
+    const apiKey = process.env.RIDB_API_KEY
+    if (!apiKey) {
+        res.status(503).json({ error: 'RIDB_API_KEY not configured' })
+        return
+    }
+    try {
+        const response = await fetch(targetUrl, {
+            headers: { 'apikey': apiKey, 'Accept': 'application/json' }
+        })
+        const data = await response.json()
+        res.json(data)
+    } catch (err) {
+        res.status(500).json({ error: err.message })
+    }
+})
+
 app.get('/api/search', async (req, res) => {
     const queryString = '?' + new URLSearchParams(req.query).toString()
     const targetUrl = `${REC_GOV_BASE}/api/search${queryString}`

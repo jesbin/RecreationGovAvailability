@@ -45,7 +45,7 @@ export async function fetchAvailabilityForMonth(
   return res.json()
 }
 
-function haversineDistanceMiles(lat1: number, lng1: number, lat2: number, lng2: number): number {
+export function haversineDistanceMiles(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 3958.8
   const dLat = ((lat2 - lat1) * Math.PI) / 180
   const dLng = ((lng2 - lng1) * Math.PI) / 180
