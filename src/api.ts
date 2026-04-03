@@ -98,7 +98,7 @@ export async function fetchAndAggregate(
   )
   return results.reduce<AggregatedAvailability>(
     (agg, avail) => {
-      Object.entries(avail.campsites).forEach(([id, cs]) => {
+      Object.entries(avail.campsites || {}).forEach(([id, cs]) => {
         const existing = agg.campsites[id]?.availabilities || {}
         agg.campsites[id] = {
           ...agg.campsites[id],

@@ -49,7 +49,7 @@ function getAvailableSites(
   const AVAILABLE = 'Available'
   return Object.values(campsites)
     .map((cs) => {
-      const dates = Object.entries(cs.availabilities)
+      const dates = Object.entries(cs.availabilities || {})
         .filter(([, status]) => status === AVAILABLE)
         .map(([dt]) => new Date(dt))
         .sort((a, b) => a.getTime() - b.getTime())
