@@ -1,4 +1,4 @@
-import type { AggregatedAvailability, Campground, CampgroundInfo, NearbyCampground } from './types'
+import type { AggregatedAvailability, Campground, CampgroundInfo, FacilityDetail, FacilityMedia, FacilityActivity, FacilityCampsite, NearbyCampground } from './types'
 
 const MONTHS_MAP: Record<number, string> = {
   1: 'January', 2: 'February', 3: 'March', 4: 'April',
@@ -110,4 +110,46 @@ export async function fetchAndAggregate(
     },
     { campsites: {} }
   )
+}
+
+// RIDB enrichment — all silently return null/[] on failure so they never block the main UI
+
+export async function fetchFacilityDetail(id: string): Promise<FacilityDetail | null> {
+  try {
+    const res = await fetch(`/api/ridb/facilities/${id}`)
+    const data = await res.json()
+    return (data.RECDATA?.[0] ?? data) || null
+  } catch {
+    return null
+  }
+}
+
+export async function fetchFacilityMedia(id: string): Promise<FacilityMedia[]> {
+  try {
+    const res = await fetch(`/api/ridb/facilities/${id}/media`)
+    const data = await res.json()
+    return (data.RECDATA ?? []) as FacilityMedia[]
+  } catch {
+    return []
+  }
+}
+
+export async function fetchFacilityActivities(id: string): Promise<FacilityActivity[]> {
+  try {
+    const res = await fetch(`/api/ridb/facilities/${id}/activities`)
+    const data = await res.json()
+    return (data.RECDATA ?? []) as FacilityActivity[]
+  } catch {
+    return []
+  }
+}
+
+export async function fetchFacilityCampsites(id: string): Promise<FacilityCampsite[]> {
+  try {
+    const res = await fetch(`/api/ridb/facilities/${id}/campsites?limit=50`)
+    const data = await res.json()
+    return (data.RECDATA ?? []) as FacilityCampsite[]
+  } catch {
+    return []
+  }
 }
