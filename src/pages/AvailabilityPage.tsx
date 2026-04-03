@@ -87,16 +87,6 @@ export default function AvailabilityPage() {
           <div>
             <label className="block text-sm font-semibold text-black mb-2.5">Campgrounds</label>
             <CampgroundSearch selected={campgrounds} onChange={setCampgrounds} />
-            <div className="mt-3">
-              <NearbyFinder
-                selected={campgrounds}
-                onAdd={(cg) => {
-                  if (!campgrounds.find((c) => c.id === cg.id)) {
-                    setCampgrounds([...campgrounds, cg])
-                  }
-                }}
-              />
-            </div>
           </div>
 
           {/* Year */}
@@ -172,7 +162,7 @@ export default function AvailabilityPage() {
 
         {/* Results */}
         {submitted && (
-          <div>
+          <div className="mb-10">
             <h2 className="text-lg font-semibold text-black mb-6">Results</h2>
             {submitted.campgrounds.map((cg) => (
               <AvailabilityResults
@@ -186,6 +176,24 @@ export default function AvailabilityPage() {
             ))}
           </div>
         )}
+
+        {/* Browse Campgrounds map */}
+        <div className="border-t border-gray-200 pt-8">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-black">Browse Campgrounds</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              All federal campgrounds from Recreation.gov. Click any pin to add it to your search, or use <span className="font-medium">Find Near Me</span> to zoom to your location.
+            </p>
+          </div>
+          <NearbyFinder
+            selected={campgrounds}
+            onAdd={(cg) => {
+              if (!campgrounds.find((c) => c.id === cg.id)) {
+                setCampgrounds([...campgrounds, cg])
+              }
+            }}
+          />
+        </div>
       </div>
     </div>
   )
