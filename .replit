@@ -30,7 +30,9 @@ task = "workflow.run"
 args = "Run App"
 
 [deployment]
-run = ["sh", "-c", "run = \"node recreationGovAvailability.js"]
+run = ["bash", "-c", "PORT=5000 node server.js"]
+deploymentTarget = "autoscale"
+build = ["npm", "run", "build"]
 
 [agent]
 expertMode = true
