@@ -127,29 +127,29 @@ async function getAvailableSitesForAlert(alert) {
 }
 
 // ── Cron: check alerts every 30 minutes ──────────────────────────────────────
-cron.schedule('*/30 * * * *', async () => {
-    const alerts = readAlerts().filter(a => a.active)
-    if (alerts.length === 0) return
-    console.log(`[alerts] Checking ${alerts.length} active alert(s)...`)
-    const state = readState()
-
-    for (const alert of alerts) {
-        try {
-            const current = await getAvailableSitesForAlert(alert)
-            const prevSiteIds = new Set(state[alert.id] || [])
-            const newSites = current.filter(s => !prevSiteIds.has(s.site))
-
-            if (newSites.length > 0) {
-                console.log(`[alerts] ${newSites.length} new site(s) for alert ${alert.id} (${alert.campgroundName})`)
-                await sendAlertEmail(alert, newSites)
-            }
-            state[alert.id] = current.map(s => s.site)
-        } catch (err) {
-            console.error(`[alerts] Error checking alert ${alert.id}:`, err.message)
-        }
-    }
-    writeState(state)
-})
+// cron.schedule('*/30 * * * *', async () => {
+//     const alerts = readAlerts().filter(a => a.active)
+//     if (alerts.length === 0) return
+//     console.log(`[alerts] Checking ${alerts.length} active alert(s)...`)
+//     const state = readState()
+//
+//     for (const alert of alerts) {
+//         try {
+//             const current = await getAvailableSitesForAlert(alert)
+//             const prevSiteIds = new Set(state[alert.id] || [])
+//             const newSites = current.filter(s => !prevSiteIds.has(s.site))
+//
+//             if (newSites.length > 0) {
+//                 console.log(`[alerts] ${newSites.length} new site(s) for alert ${alert.id} (${alert.campgroundName})`)
+//                 await sendAlertEmail(alert, newSites)
+//             }
+//             state[alert.id] = current.map(s => s.site)
+//         } catch (err) {
+//             console.error(`[alerts] Error checking alert ${alert.id}:`, err.message)
+//         }
+//     }
+//     writeState(state)
+// })
 
 const REC_GOV_BASE = 'https://www.recreation.gov'
 
